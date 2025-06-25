@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import dynamic from 'next/dynamic';
+
+const AdminCharts = dynamic(() => import('@/components/AdminCharts'), { ssr: false });
 
 export default function AdminDashboard() {
   const [message, setMessage] = useState('');
@@ -280,6 +283,8 @@ export default function AdminDashboard() {
       </section>
 
       {message && <p className="text-purple-700 font-medium mt-6">{message}</p>}
+      <AdminCharts internsData={interns} reportData={report} />
+
     </div>
   );
 }
@@ -308,6 +313,7 @@ function InternSkills({ internId, skills }: { internId: string; skills: any[] })
           </li>
         );
       })}
+      
     </>
   );
 }
