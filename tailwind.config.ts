@@ -14,6 +14,9 @@ const config: Config = {
         'gradient-conic':
           'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
+      boxShadow: {
+      glow: '0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(99, 102, 241, 0.6)',
+    },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
