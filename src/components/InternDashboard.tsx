@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { motion } from 'framer-motion';
+import { CheckCircle, Rocket } from 'lucide-react';
+import { Button } from './ui/button';
 
 export default function InternDashboard() {
   const [skills, setSkills] = useState<{ id: string; name: string }[]>([]);
@@ -26,14 +29,12 @@ export default function InternDashboard() {
         .from('intern_projects')
         .select('*, projects(*)')
         .eq('intern_id', user.id);
-
       if (projectData) setProjects(projectData);
 
       const { data: completedData } = await supabase
         .from('completed_projects')
         .select('*, projects(*)')
         .eq('intern_id', user.id);
-
       if (completedData) setCompletedProjects(completedData);
     }
 
@@ -50,21 +51,13 @@ export default function InternDashboard() {
     }));
 
     const { error: skillsError } = await supabase.from('intern_skills').upsert(skillsToInsert);
-
-    if (skillsError) {
-      setMessage('❌ Failed to save skills.');
-      return;
-    }
+    if (skillsError) return setMessage('❌ Failed to save skills.');
 
     const { error: goalError } = await supabase
       .from('users')
       .update({ goal_hours: Number(goalHours) })
       .eq('id', userId);
-
-    if (goalError) {
-      setMessage('❌ Failed to save goal hours.');
-      return;
-    }
+    if (goalError) return setMessage('❌ Failed to save goal hours.');
 
     setMessage('✅ Saved successfully!');
   };
@@ -76,28 +69,17 @@ export default function InternDashboard() {
       intern_id: userId,
       project_id: projectId,
     });
-
-    if (insertError) {
-      console.error('Insert Error:', insertError.message);
-      setMessage('❌ Could not complete project.');
-      return;
-    }
+    if (insertError) return setMessage('❌ Could not complete project.');
 
     const { error: deleteError } = await supabase
       .from('intern_projects')
       .delete()
       .match({ intern_id: userId, project_id: projectId });
-
-    if (deleteError) {
-      console.error('Delete Error:', deleteError.message);
-      setMessage('❌ Failed to remove project from active list.');
-      return;
-    }
+    if (deleteError) return setMessage('❌ Failed to remove project from active list.');
 
     setMessage('✅ Project marked as complete!');
     setProjects((prev) => prev.filter((p) => p.project_id !== projectId));
 
-    // Optional: Refresh completed projects
     const { data: completedData } = await supabase
       .from('completed_projects')
       .select('*, projects(*)')
@@ -106,26 +88,38 @@ export default function InternDashboard() {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gray-50">
-      <h1 className="text-3xl font-bold mb-6">Intern Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 p-6">
+      <motion.h1
+        className="text-3xl font-bold mb-6 text-gray-800 dark:text-white"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        Intern Dashboard
+      </motion.h1>
 
-      <div className="mb-6">
-        <label className="block font-medium mb-2">Monthly Goal (in hours):</label>
+      {/* Monthly Goal Input */}
+      <section className="mb-10">
+        <label className="block font-medium mb-2 text-gray-700 dark:text-gray-300">
+          Monthly Goal (in hours):
+        </label>
         <input
           type="number"
           value={goalHours}
           onChange={(e) => setGoalHours(e.target.value)}
-          className="p-2 border border-gray-300 rounded w-64"
-          placeholder="Enter monthly hour goal"
+          placeholder="e.g. 20"
+          className="w-60 p-2 border rounded dark:bg-gray-800 dark:text-white"
         />
-      </div>
+      </section>
 
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-4">Rate Your Skills</h2>
+      {/* Skill Ratings */}
+      <section className="mb-10">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+          Rate Your Skills
+        </h2>
         <div className="space-y-4">
           {skills.map((skill) => (
             <div key={skill.id} className="flex items-center gap-4">
-              <label className="w-40">{skill.name}</label>
+              <label className="w-40 text-gray-700 dark:text-gray-300">{skill.name}</label>
               <input
                 type="range"
                 min="1"
@@ -135,65 +129,86 @@ export default function InternDashboard() {
                   setRatings({ ...ratings, [skill.id]: Number(e.target.value) })
                 }
               />
-              <span>{ratings[skill.id] || 3}</span>
+              <span className="text-gray-600 dark:text-white">{ratings[skill.id] || 3}</span>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      <button
+      {/* Save Button */}
+      <Button
         onClick={handleSubmit}
         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
       >
         Save
-      </button>
+      </Button>
 
-      {message && <p className="mt-4 text-blue-600 font-medium">{message}</p>}
+      {/* Message Banner */}
+      {message && (
+        <div className="fixed bottom-4 right-4 px-4 py-2 bg-white dark:bg-gray-800 shadow rounded border text-gray-800 dark:text-white">
+          {message}
+        </div>
+      )}
 
+      {/* Assigned Projects */}
       {projects.length > 0 && (
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold mb-4">🧠 Your Assigned Projects</h2>
-          <div className="space-y-4">
+        <section className="mt-12">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+            🧠 Your Assigned Projects
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
             {projects.map((p) => (
-              <div
+              <motion.div
                 key={p.project_id}
-                className="border border-gray-300 p-4 rounded shadow bg-white"
+                className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow hover:shadow-lg transition"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
               >
-                <h3 className="text-lg font-bold">{p.projects.name}</h3>
-                <p className="text-gray-700">{p.projects.description}</p>
-                <p className="text-sm text-gray-500">
+                <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
+                  {p.projects.name}
+                </h3>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{p.projects.description}</p>
+                <p className="text-sm text-gray-500 mt-1">
                   Estimated Hours: {p.projects.estimated_hours}
                 </p>
                 <button
                   onClick={() => handleComplete(p.project_id)}
-                  className="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="mt-3 inline-flex items-center px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
                 >
+                  <CheckCircle className="w-4 h-4 mr-1" />
                   Mark as Complete
                 </button>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
+      {/* Completed Projects */}
       {completedProjects.length > 0 && (
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold mb-4">✅ Completed Projects</h2>
-          <div className="space-y-4">
+        <section className="mt-12">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+            ✅ Completed Projects
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
             {completedProjects.map((p) => (
-              <div
+              <motion.div
                 key={p.project_id}
-                className="border border-green-300 p-4 rounded shadow bg-green-50"
+                className="bg-green-100 dark:bg-green-900/20 border border-green-400 dark:border-green-600 p-5 rounded-xl"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
               >
-                <h3 className="text-lg font-bold">{p.projects.name}</h3>
-                <p>{p.projects.description}</p>
-                <p className="text-sm text-gray-500">
-                  Completed at: {new Date(p.completed_at).toLocaleString()}
+                <h3 className="text-lg font-bold text-green-800 dark:text-green-300">
+                  {p.projects.name}
+                </h3>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{p.projects.description}</p>
+                <p className="text-xs mt-2 text-gray-500">
+                  Completed At: {new Date(p.completed_at).toLocaleString()}
                 </p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
